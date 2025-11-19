@@ -452,11 +452,22 @@ def create_architectural_climate_dashboard():
     st.title("Architectural Climate Analysis Dashboard")
     st.markdown("*Professional climate analysis for sustainable architectural design*")
     
+    query_params = st.query_params
+    
+    url_lat = query_params.get('lat')
+    url_lon = query_params.get('lon')
+    
+    default_lat = float(url_lat if url_lat else -1.0388)
+    default_lon = float(url_lon if url_lon else 37.0834)
+    
+    auto_analyze = url_lat is not None and url_lon is not None
+    
     # Sidebar
     st.sidebar.header("Location Settings")
-    lat = st.sidebar.number_input("Latitude", value=-1.0388, format="%.4f", help="Enter latitude in decimal degrees")
-    lon = st.sidebar.number_input("Longitude", value=37.0834, format="%.4f", help="Enter longitude in decimal degrees")
-    location_name = st.sidebar.text_input("Location Name", value="Thika, Kenya")
+    lat = st.sidebar.number_input("Latitude", value=default_lat, format="%.4f", 
+                                   help="Enter latitude in decimal degrees")
+    lon = st.sidebar.number_input("Longitude", value=default_lon, format="%.4f", 
+                                   help="Enter longitude in decimal degrees")
     
     st.sidebar.header("Analysis Period")
     start_year = st.sidebar.number_input("Start Year", value=2014, min_value=1980, max_value=2023)
@@ -466,14 +477,30 @@ def create_architectural_climate_dashboard():
     show_insights = st.sidebar.checkbox("Show Detailed Insights", value=True)
     show_raw_data = st.sidebar.checkbox("Show Raw Data", value=False)
     
-    if st.sidebar.button("Analyze Climate Data", type="primary"):
-        # Get real data
-        with st.spinner(f"Fetching climate data for..."):
+    # Auto-trigger analysis if URL params exist and data not loaded
+    if auto_analyze and not st.session_state.get('data_loaded', False):
+        with st.spinner(f"Fetching climate data for {location_name}..."):
             monthly_profile = get_monthly_climate_profile(lat, lon, start_year, end_year)
             solar_df = get_solar_from_openmeteo(lat, lon)
             wind_df = get_wind_data_from_api(lat, lon)
         
-        # Check if data was successfully retrieved
+        if monthly_profile is not None:
+            st.session_state['monthly_profile'] = monthly_profile
+            st.session_state['solar_df'] = solar_df
+            st.session_state['wind_df'] = wind_df
+            st.session_state['location_name'] = location_name
+            st.session_state['data_loaded'] = True
+        else:
+            st.error("Unable to fetch climate data from NASA POWER. Please check your internet connection and coordinates.")
+            return
+    
+    # Manual analyze button
+    if st.sidebar.button("Analyze Climate Data", type="primary"):
+        with st.spinner(f"Fetching climate data for {location_name}..."):
+            monthly_profile = get_monthly_climate_profile(lat, lon, start_year, end_year)
+            solar_df = get_solar_from_openmeteo(lat, lon)
+            wind_df = get_wind_data_from_api(lat, lon)
+        
         if monthly_profile is None:
             st.error("Unable to fetch climate data from NASA POWER. Please check your internet connection and coordinates.")
             return
@@ -484,7 +511,6 @@ def create_architectural_climate_dashboard():
         if wind_df is None or wind_df.empty:
             st.warning("Wind data unavailable. Wind analysis will be limited.")
         
-        # Store in session state
         st.session_state['monthly_profile'] = monthly_profile
         st.session_state['solar_df'] = solar_df
         st.session_state['wind_df'] = wind_df
@@ -619,7 +645,7 @@ def create_architectural_climate_dashboard():
         
         col1, col2 = st.columns(2)
         with col1:
-            st.info(f"""**🌡️ Temperature Insights:**
+            st.info(f"""**Temperature Insights:**
 - Annual average: {avg_annual_temp:.1f}°C
 - Seasonal variation: {max_temp - min_temp:.1f}°C
 - Hottest: {hottest_month} ({max_temp:.1f}°C)
