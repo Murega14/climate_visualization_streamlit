@@ -479,7 +479,7 @@ def create_architectural_climate_dashboard():
     
     # Auto-trigger analysis if URL params exist and data not loaded
     if auto_analyze and not st.session_state.get('data_loaded', False):
-        with st.spinner(f"Fetching climate data for {location_name}..."):
+        with st.spinner(f"Fetching climate data for"):
             monthly_profile = get_monthly_climate_profile(lat, lon, start_year, end_year)
             solar_df = get_solar_from_openmeteo(lat, lon)
             wind_df = get_wind_data_from_api(lat, lon)
@@ -488,7 +488,6 @@ def create_architectural_climate_dashboard():
             st.session_state['monthly_profile'] = monthly_profile
             st.session_state['solar_df'] = solar_df
             st.session_state['wind_df'] = wind_df
-            st.session_state['location_name'] = location_name
             st.session_state['data_loaded'] = True
         else:
             st.error("Unable to fetch climate data from NASA POWER. Please check your internet connection and coordinates.")
@@ -496,7 +495,7 @@ def create_architectural_climate_dashboard():
     
     # Manual analyze button
     if st.sidebar.button("Analyze Climate Data", type="primary"):
-        with st.spinner(f"Fetching climate data for {location_name}..."):
+        with st.spinner(f"Fetching climate data..."):
             monthly_profile = get_monthly_climate_profile(lat, lon, start_year, end_year)
             solar_df = get_solar_from_openmeteo(lat, lon)
             wind_df = get_wind_data_from_api(lat, lon)
@@ -514,7 +513,6 @@ def create_architectural_climate_dashboard():
         st.session_state['monthly_profile'] = monthly_profile
         st.session_state['solar_df'] = solar_df
         st.session_state['wind_df'] = wind_df
-        st.session_state['location_name'] = location_name
         st.session_state['data_loaded'] = True
     
     # Check if data is loaded
@@ -526,7 +524,6 @@ def create_architectural_climate_dashboard():
     monthly_profile = st.session_state['monthly_profile']
     solar_df = st.session_state['solar_df']
     wind_df = st.session_state['wind_df']
-    location_name = st.session_state['location_name']
     
     # Process temperature data
     months = list(monthly_profile.keys())
@@ -554,7 +551,7 @@ def create_architectural_climate_dashboard():
         wind_directions = None
     
     # Main dashboard layout
-    st.subheader(f"Climate Summary for {location_name}")
+    st.subheader(f"Climate Summary")
     
     # Metrics
     col1, col2, col3, col4 = st.columns(4)
@@ -711,7 +708,7 @@ def create_architectural_climate_dashboard():
             st.write("**Wind Analysis & Building Orientation**")
             
             fig_wind = create_interactive_wind_rose(wind_speeds, wind_directions, 
-                                                    f"Wind Distribution - {location_name}")
+                                                    f"Wind Distribution")
             st.plotly_chart(fig_wind, use_container_width=True)
             
             # Determine cardinal direction
@@ -953,7 +950,7 @@ def create_architectural_climate_dashboard():
         st.download_button(
             label=" Download Climate Data (CSV)",
             data=monthly_df.to_csv(index=False),
-            file_name=f"{location_name}_climate_data.csv",
+            file_name=f"climate_data.csv",
             mime="text/csv"
         )
     
